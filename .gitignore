@@ -1,6 +1,5 @@
 # binaries
 /bin/
-paddock
 
 # test / coverage
 *.out
