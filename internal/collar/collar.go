@@ -9,23 +9,21 @@ type Collar struct {
 	CowID string
 	Fence fence.Rect
 	state fence.State
+	warnM float64
 }
 
-func New(cowID string, f fence.Rect) *Collar {
-	return &Collar{CowID: cowID, Fence: f, state: fence.Inside}
+func New(cowID string, f fence.Rect, warnM float64) *Collar {
+	return &Collar{CowID: cowID, Fence: f, state: fence.Inside, warnM: warnM}
 }
 
 func (c *Collar) Observe(p geom.Point) (fence.State, bool) {
-	var newState fence.State
-	if c.Fence.Contains(p) {
-		newState = fence.Inside
-	} else {
-		newState = fence.Breached
-	}
+	newState := c.Fence.Evaluate(p, c.warnM)
 
 	changed := newState != c.state
+
 	if changed {
 		c.state = newState
 	}
+
 	return newState, changed
 }
