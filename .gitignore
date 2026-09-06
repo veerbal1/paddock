@@ -1,12 +1,13 @@
-# Binaries
-/paddock
-*.exe
+# binaries
+/bin/
+paddock
+collarsim
 
-# Test artifacts
+# test / coverage
 *.out
 coverage.*
 
-# Editor / OS
+# editor / os
 .DS_Store
 .idea/
 .vscode/
