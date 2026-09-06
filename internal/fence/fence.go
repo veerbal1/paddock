@@ -2,6 +2,12 @@ package fence
 
 import "github.com/veerbal1/paddock/internal/geom"
 
+// State is the current state of the fence.
+type State string
+
+const Inside State = "inside"
+const Breached State = "breached"
+
 // Rect is a rectangle on the farm's local plane, in metres from the
 // farm origin. They are parallel to the farm's axes. Not diagonally or random.
 type Rect struct {
