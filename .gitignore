@@ -1,7 +1,6 @@
 # binaries
 /bin/
 paddock
-collarsim
 
 # test / coverage
 *.out
