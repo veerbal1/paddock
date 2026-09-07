@@ -7,42 +7,53 @@ import (
 	"sync"
 	"time"
 
+	"github.com/veerbal1/paddock/internal/collar"
 	"github.com/veerbal1/paddock/internal/cow"
+	"github.com/veerbal1/paddock/internal/fence"
 	"github.com/veerbal1/paddock/internal/geom"
 	"github.com/veerbal1/paddock/internal/telemetry"
 )
 
 type Sim struct {
-	cows  []*cow.Cow
+	units []*unit
 	pings chan telemetry.Ping
 }
 
-const spread = 20.0
+const spread = 40.0
 const pingBuffer = 256
+
+// unit is one cow with the collar strapped to it. They live and tick together.
+type unit struct {
+	cow    *cow.Cow
+	collar *collar.Collar
+}
 
 func (s *Sim) Pings() <-chan telemetry.Ping {
 	return s.pings
 }
 
-func New(n int, seed int64, start geom.Point) *Sim {
+func New(n int, seed int64, start geom.Point, f fence.Rect) *Sim {
 	master := rand.New(rand.NewSource(seed))
 
-	cows := make([]*cow.Cow, 0, n)
+	units := make([]*unit, 0, n)
 	for i := 0; i < n; i++ {
 		p := geom.Point{
 			X: start.X + (master.Float64()*2-1)*spread,
 			Y: start.Y + (master.Float64()*2-1)*spread,
 		}
-		cows = append(cows, cow.New(fmt.Sprintf("cow-%02d", i+1), p, master.Int63()))
+		id := fmt.Sprintf("cow-%02d", i+1)
+		c := cow.New(id, p, master.Int63())
+		col := collar.New(id, f, 10)
+		units = append(units, &unit{cow: c, collar: col})
 	}
 
-	return &Sim{cows: cows, pings: make(chan telemetry.Ping, pingBuffer)}
+	return &Sim{units: units, pings: make(chan telemetry.Ping, pingBuffer)}
 }
 
 func (s *Sim) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 
-	for _, c := range s.cows {
+	for _, c := range s.units {
 		wg.Add(1)
 
 		go func() {
@@ -54,12 +65,11 @@ func (s *Sim) Run(ctx context.Context) {
 			for {
 				select {
 				case <-ctx.Done():
-					fmt.Println("Close triggered")
 					return
 				case <-ticker.C:
-					c.Step(time.Second)
-					s.pings <- telemetry.Ping{CowID: c.ID, Pos: c.Pos, At: time.Now()}
-					// fmt.Printf("%s  x=%.1f y=%.1f\n", c.ID, c.Pos.X, c.Pos.Y)
+					c.cow.Step(time.Second)
+					state, _ := c.collar.Observe(c.cow.Pos)
+					s.pings <- telemetry.Ping{CowID: c.cow.ID, Pos: c.cow.Pos, At: time.Now(), State: state}
 				}
 			}
 		}()

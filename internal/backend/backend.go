@@ -4,7 +4,6 @@ package backend
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/veerbal1/paddock/internal/telemetry"
 )
@@ -22,7 +21,6 @@ func New() *Backend {
 // Consume reads pings until the channel is closed and drained.
 func (b *Backend) Consume(pings <-chan telemetry.Ping) {
 	for p := range pings {
-		time.Sleep(50 * time.Millisecond)
-		fmt.Printf("%s  x=%.1f y=%.1f\n", p.CowID, p.Pos.X, p.Pos.Y)
+		fmt.Printf("%s  x=%.1f y=%.1f %s\n", p.CowID, p.Pos.X, p.Pos.Y, p.State)
 	}
 }

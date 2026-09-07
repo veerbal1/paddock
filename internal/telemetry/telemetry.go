@@ -5,6 +5,7 @@ package telemetry
 import (
 	"time"
 
+	"github.com/veerbal1/paddock/internal/fence"
 	"github.com/veerbal1/paddock/internal/geom"
 )
 
@@ -15,4 +16,5 @@ type Ping struct {
 	CowID string
 	Pos   geom.Point
 	At    time.Time
+	State fence.State
 }
