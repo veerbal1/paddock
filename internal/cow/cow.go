@@ -46,8 +46,21 @@ func New(id string, start geom.Point, seed int64, trained float64) *Cow {
 }
 
 // Step advances the cow by one tick of simulated time dt.
-func (c *Cow) Step(dt time.Duration) {
+func (c *Cow) Step(dt time.Duration, center geom.Point) {
+	dx := center.X - c.Pos.X
+	dy := center.Y - c.Pos.Y
+
+	compass := math.Atan2(dx, dy)
 	c.Heading += (c.rng.Float64()*2 - 1) * turnRate
+
+	diff := compass - c.Heading
+	for diff > math.Pi {
+		diff -= 2 * math.Pi
+	}
+	for diff < -math.Pi {
+		diff += 2 * math.Pi
+	}
+	c.Heading = wrapHeading(c.Heading + 0.05*diff)
 
 	c.Heading = wrapHeading(c.Heading)
 

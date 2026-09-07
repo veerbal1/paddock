@@ -15,8 +15,8 @@ func TestCowIsDeterministic(t *testing.T) {
 	b := New("cow-01", start, 42, 1.0)
 
 	for i := 0; i < 100; i++ {
-		a.Step(time.Second)
-		b.Step(time.Second)
+		a.Step(time.Second, geom.Point{X: 50, Y: 50})
+		b.Step(time.Second, geom.Point{X: 50, Y: 50})
 
 		if a.Pos.X != b.Pos.X || a.Pos.Y != b.Pos.Y {
 			t.Fatalf("step %d: diverged: a=%v b=%v", i, a.Pos, b.Pos)
@@ -31,8 +31,8 @@ func TestCowDifferentSeedsDiverge(t *testing.T) {
 	b := New("cow-02", start, 43, 1.0)
 
 	for i := 0; i < 100; i++ {
-		a.Step(time.Second)
-		b.Step(time.Second)
+		a.Step(time.Second, geom.Point{X: 50, Y: 50})
+		b.Step(time.Second, geom.Point{X: 50, Y: 50})
 
 		if a.Pos.X != b.Pos.X || a.Pos.Y != b.Pos.Y {
 			return
@@ -116,7 +116,7 @@ func TestCowHeadingStaysWrapped(t *testing.T) {
 	c := New("cow-01", geom.Point{X: 100, Y: 100}, 42, 1.0)
 
 	for i := 0; i < 1000; i++ {
-		c.Step(time.Second)
+		c.Step(time.Second, geom.Point{X: 50, Y: 50})
 		c.TurnAway(0.5)
 
 		if c.Heading < 0 || c.Heading >= 2*math.Pi {

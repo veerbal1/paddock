@@ -32,6 +32,21 @@ func (s *Sim) Pings() <-chan telemetry.Ping {
 	return s.pings
 }
 
+func (s *Sim) Centroid() geom.Point {
+	xSum := 0.0
+	ySum := 0.0
+	var length float64 = float64(len(s.units))
+	for _, unit := range s.units {
+		xSum += unit.cow.Pos.X
+		ySum += unit.cow.Pos.Y
+	}
+
+	return geom.Point{
+		X: xSum / length,
+		Y: ySum / length,
+	}
+}
+
 func New(n int, seed int64, start geom.Point, f fence.Rect) *Sim {
 	master := rand.New(rand.NewSource(seed))
 
@@ -85,7 +100,7 @@ func (s *Sim) Run(ctx context.Context) {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					u.cow.Step(time.Second)
+					u.cow.Step(time.Second, s.Centroid())
 					obs := u.collar.Observe(u.cow.Pos)
 
 					if obs.Cue != telemetry.CueNone {
