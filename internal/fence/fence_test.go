@@ -147,13 +147,13 @@ func TestRectEvaluate(t *testing.T) {
 	tests := []struct {
 		name string
 		p    geom.Point
-		want State
+		want Zone
 	}{
-		{name: "deep inside", p: geom.Point{X: 100, Y: 100}, want: Inside},
-		{name: "just inside warning zone", p: geom.Point{X: 191, Y: 100}, want: Warning},
-		{name: "just outside warning zone", p: geom.Point{X: 189, Y: 100}, want: Inside},
-		{name: "on edge", p: geom.Point{X: 200, Y: 100}, want: Warning},
-		{name: "outside", p: geom.Point{X: 205, Y: 100}, want: Breached},
+		{name: "deep inside", p: geom.Point{X: 100, Y: 100}, want: ZoneInside},
+		{name: "just inside warning zone", p: geom.Point{X: 191, Y: 100}, want: ZoneWarning},
+		{name: "just outside warning zone", p: geom.Point{X: 189, Y: 100}, want: ZoneInside},
+		{name: "on edge", p: geom.Point{X: 200, Y: 100}, want: ZoneWarning},
+		{name: "outside", p: geom.Point{X: 205, Y: 100}, want: ZoneOutside},
 	}
 
 	for _, tt := range tests {

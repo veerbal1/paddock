@@ -2,13 +2,28 @@ package fence
 
 import "github.com/veerbal1/paddock/internal/geom"
 
-// State is the current state of the fence.
-type State string
+// Zone is where a point sits relative to the fence, right now. Pure geometry:
+// no memory, no hysteresis. A noisy GPS fix flips this every tick.
+type Zone int
 
-const Inside State = "inside"
-const Breached State = "breached"
+const (
+	ZoneInside Zone = iota
+	ZoneWarning
+	ZoneOutside
+)
 
-const Warning State = "warning"
+func (z Zone) String() string {
+	switch z {
+	case ZoneInside:
+		return "inside"
+	case ZoneWarning:
+		return "warning"
+	case ZoneOutside:
+		return "outside"
+	default:
+		return "unknown"
+	}
+}
 
 // Rect is a rectangle on the farm's local plane, in metres from the
 // farm origin. They are parallel to the farm's axes. Not diagonally or random.
@@ -38,15 +53,15 @@ func (r Rect) DistanceToEdgeM(p geom.Point) float64 {
 
 // Evaluate returns the state of p relative to the fence. warnM is how
 // many metres inside the edge the warning zone begins.
-func (r Rect) Evaluate(p geom.Point, warnM float64) State {
+func (r Rect) Evaluate(p geom.Point, warnM float64) Zone {
 	d := r.DistanceToEdgeM(p)
 	if d < 0 {
-		return Breached
+		return ZoneOutside
 	}
 
 	if d <= warnM {
-		return Warning
+		return ZoneWarning
 	}
 
-	return Inside
+	return ZoneInside
 }
