@@ -3,6 +3,7 @@
 package telemetry
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/veerbal1/paddock/internal/geom"
@@ -69,4 +70,17 @@ func (c Cue) String() string {
 	default:
 		return "unknown"
 	}
+}
+
+// MarshalJSON sends the state over the wire as a name rather than a number.
+// encoding/json ignores String() — it looks for this method instead — so
+// without it a ping would carry "State": 2 and every reader would need a
+// lookup table.
+func (s State) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.String())
+}
+
+// MarshalJSON sends the cue over the wire as a name, for the same reason.
+func (c Cue) MarshalJSON() ([]byte, error) {
+	return json.Marshal(c.String())
 }
