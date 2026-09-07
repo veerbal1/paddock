@@ -108,11 +108,12 @@ func (s *Sim) Run(ctx context.Context) {
 					}
 
 					s.pings <- telemetry.Ping{
-						CowID: u.cow.ID,
-						Pos:   u.cow.Pos,
-						At:    time.Now(),
-						State: obs.To,
-						Cue:   obs.Cue,
+						CowID:    u.cow.ID,
+						Pos:      u.cow.Pos,
+						At:       time.Now(),
+						State:    obs.To,
+						Cue:      obs.Cue,
+						Activity: u.cow.Activity,
 					}
 				}
 			}

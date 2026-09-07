@@ -9,6 +9,27 @@ import (
 	"github.com/veerbal1/paddock/internal/geom"
 )
 
+type Activity int
+
+const (
+	Grazing Activity = iota
+	Walking
+	Resting
+)
+
+func (a Activity) String() string {
+	switch a {
+	case Grazing:
+		return "grazing"
+	case Walking:
+		return "walking"
+	case Resting:
+		return "resting"
+	default:
+		return "unknown"
+	}
+}
+
 // State is what a collar believes about its cow. Unlike a fence.Zone, this has
 // memory: hysteresis and dwell time hold it steady while the raw zone flickers.
 type State int
@@ -39,11 +60,12 @@ func (s State) String() string {
 // the device boundary belongs here — no heading, no seed, nothing internal to
 // the simulation.
 type Ping struct {
-	CowID string
-	Pos   geom.Point
-	At    time.Time
-	State State
-	Cue   Cue
+	CowID    string
+	Pos      geom.Point
+	At       time.Time
+	State    State
+	Cue      Cue
+	Activity Activity
 }
 
 // Cue is what the collar did to the animal on this tick. The ladder only
@@ -83,4 +105,9 @@ func (s State) MarshalJSON() ([]byte, error) {
 // MarshalJSON sends the cue over the wire as a name, for the same reason.
 func (c Cue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(c.String())
+}
+
+// MarshalJSON sends the activity over the wire as a name, for the same reason.
+func (a Activity) MarshalJSON() ([]byte, error) {
+	return json.Marshal(a.String())
 }
