@@ -53,7 +53,7 @@ func New(n int, seed int64, start geom.Point, f fence.Rect) *Sim {
 func (s *Sim) Run(ctx context.Context) {
 	var wg sync.WaitGroup
 
-	for _, c := range s.units {
+	for _, u := range s.units {
 		wg.Add(1)
 
 		go func() {
@@ -67,9 +67,15 @@ func (s *Sim) Run(ctx context.Context) {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					c.cow.Step(time.Second)
-					state, _ := c.collar.Observe(c.cow.Pos)
-					s.pings <- telemetry.Ping{CowID: c.cow.ID, Pos: c.cow.Pos, At: time.Now(), State: state}
+					u.cow.Step(time.Second)
+					obs := u.collar.Observe(u.cow.Pos)
+					s.pings <- telemetry.Ping{
+						CowID: u.cow.ID,
+						Pos:   u.cow.Pos,
+						At:    time.Now(),
+						State: obs.To,
+						Cue:   obs.Cue,
+					}
 				}
 			}
 		}()

@@ -42,4 +42,31 @@ type Ping struct {
 	Pos   geom.Point
 	At    time.Time
 	State State
+	Cue   Cue
+}
+
+// Cue is what the collar did to the animal on this tick. The ladder only
+// climbs while the cow keeps heading outward; coming back in resets it.
+type Cue int
+
+const (
+	CueNone Cue = iota
+	CueAudio
+	CueVibration
+	CuePulse
+)
+
+func (c Cue) String() string {
+	switch c {
+	case CueNone:
+		return "none"
+	case CueAudio:
+		return "audio"
+	case CueVibration:
+		return "vibration"
+	case CuePulse:
+		return "pulse"
+	default:
+		return "unknown"
+	}
 }

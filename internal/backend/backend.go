@@ -21,6 +21,8 @@ func New() *Backend {
 // Consume reads pings until the channel is closed and drained.
 func (b *Backend) Consume(pings <-chan telemetry.Ping) {
 	for p := range pings {
-		fmt.Printf("%s  x=%.1f y=%.1f %s\n", p.CowID, p.Pos.X, p.Pos.Y, p.State)
+		fmt.Printf("%s  x=%.1f y=%.1f  %-8s  cue=%s\n",
+			p.CowID, p.Pos.X, p.Pos.Y, p.State, p.Cue)
+
 	}
 }
