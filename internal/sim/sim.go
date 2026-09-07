@@ -17,7 +17,18 @@ import (
 type Sim struct {
 	units []*unit
 	pings chan telemetry.Ping
+	Speed int
+	Clock Clock
 }
+
+// Clock is the source of ping timestamps. Production uses RealClock;
+// tests use FakeClock. Nothing here calls time.Now() directly, so
+// --speed can never fast-forward a timestamp by accident.
+type Clock interface{ Now() time.Time }
+
+type RealClock struct{}
+
+func (RealClock) Now() time.Time { return time.Now() }
 
 const spread = 40.0
 const pingBuffer = 256
@@ -66,7 +77,7 @@ func New(n int, seed int64, start geom.Point, f fence.Rect) *Sim {
 		units = append(units, &unit{cow: c, collar: col})
 	}
 
-	return &Sim{units: units, pings: make(chan telemetry.Ping, pingBuffer)}
+	return &Sim{units: units, pings: make(chan telemetry.Ping, pingBuffer), Speed: 1, Clock: RealClock{}}
 }
 
 // cueResponse is how likely a well-trained cow is to turn away from each cue.
@@ -100,7 +111,10 @@ func (s *Sim) Run(ctx context.Context) {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					u.cow.Step(time.Second, s.Centroid())
+					center := s.Centroid()
+					for i := 0; i < s.Speed; i++ {
+						u.cow.Step(time.Second, center)
+					}
 					obs := u.collar.Observe(u.cow.Pos)
 
 					if obs.Cue != telemetry.CueNone {
@@ -110,7 +124,7 @@ func (s *Sim) Run(ctx context.Context) {
 					s.pings <- telemetry.Ping{
 						CowID:    u.cow.ID,
 						Pos:      u.cow.Pos,
-						At:       time.Now(),
+						At:       s.Clock.Now(),
 						State:    obs.To,
 						Cue:      obs.Cue,
 						Activity: u.cow.Activity,
