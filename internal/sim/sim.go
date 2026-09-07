@@ -42,12 +42,30 @@ func New(n int, seed int64, start geom.Point, f fence.Rect) *Sim {
 			Y: start.Y + (master.Float64()*2-1)*spread,
 		}
 		id := fmt.Sprintf("cow-%02d", i+1)
-		c := cow.New(id, p, master.Int63())
+		trained := 0.9 + master.Float64()*0.1 // 0.9 – 1.0
+		if master.Float64() < 0.1 {
+			trained = 0.3 // 10% untrained
+		}
+		c := cow.New(id, p, master.Int63(), trained)
 		col := collar.New(id, f, 10)
 		units = append(units, &unit{cow: c, collar: col})
 	}
 
 	return &Sim{units: units, pings: make(chan telemetry.Ping, pingBuffer)}
+}
+
+// cueResponse is how likely a well-trained cow is to turn away from each cue.
+// The cow's own Trained factor scales this further.
+func cueResponse(c telemetry.Cue) float64 {
+	switch c {
+	case telemetry.CueAudio:
+		return 0.85
+	case telemetry.CueVibration:
+		return 0.92
+	case telemetry.CuePulse:
+		return 0.98
+	}
+	return 0
 }
 
 func (s *Sim) Run(ctx context.Context) {
@@ -69,6 +87,11 @@ func (s *Sim) Run(ctx context.Context) {
 				case <-ticker.C:
 					u.cow.Step(time.Second)
 					obs := u.collar.Observe(u.cow.Pos)
+
+					if obs.Cue != telemetry.CueNone {
+						u.cow.TurnAway(cueResponse(obs.Cue))
+					}
+
 					s.pings <- telemetry.Ping{
 						CowID: u.cow.ID,
 						Pos:   u.cow.Pos,
