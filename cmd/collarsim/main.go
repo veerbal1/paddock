@@ -10,6 +10,7 @@ import (
 
 	"github.com/veerbal1/paddock/internal/fence"
 	"github.com/veerbal1/paddock/internal/geom"
+	"github.com/veerbal1/paddock/internal/mqttx"
 	"github.com/veerbal1/paddock/internal/sim"
 )
 
@@ -17,6 +18,11 @@ func main() {
 	speed := flag.Int("speed", 1, "physics steps per real second")
 	seed := flag.Int64("seed", 42, "master random seed")
 	flag.Parse()
+	mqttxClient, err := mqttx.New("tcp://localhost:1883", "collarsim")
+	if err != nil {
+		log.Fatalf("broker: %v", err)
+	}
+	defer mqttxClient.Close()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -27,10 +33,12 @@ func main() {
 
 	go s.Run(ctx)
 
-	// TODO Step 1: publish pings to broker here instead of dropping.
 	n := 0
-	for range s.Pings() {
-		n++
+	for ping := range s.Pings() {
+		err := mqttxClient.PublishPing("1", ping)
+		if err != nil {
+			n++
+		}
 	}
-	log.Printf("collarsim: drained %d pings, exiting", n)
+	log.Printf("collarsim: failed %d pings, exiting", n)
 }

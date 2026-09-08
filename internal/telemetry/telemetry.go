@@ -102,12 +102,74 @@ func (s State) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.String())
 }
 
+// UnmarshalJSON reads the name back into a number. Marshal without this
+// is a one-way bridge: publish works, subscribe silently drops.
+func (s *State) UnmarshalJSON(raw []byte) error {
+	var name string
+	if err := json.Unmarshal(raw, &name); err != nil {
+		return err
+	}
+	switch name {
+	case "inside":
+		*s = Inside
+	case "warning":
+		*s = Warning
+	case "breached":
+		*s = Breached
+	case "escaped":
+		*s = Escaped
+	default:
+		*s = Inside
+	}
+	return nil
+}
+
 // MarshalJSON sends the cue over the wire as a name, for the same reason.
 func (c Cue) MarshalJSON() ([]byte, error) {
 	return json.Marshal(c.String())
 }
 
+// UnmarshalJSON reads the cue name back.
+func (c *Cue) UnmarshalJSON(raw []byte) error {
+	var name string
+	if err := json.Unmarshal(raw, &name); err != nil {
+		return err
+	}
+	switch name {
+	case "none":
+		*c = CueNone
+	case "audio":
+		*c = CueAudio
+	case "vibration":
+		*c = CueVibration
+	case "pulse":
+		*c = CuePulse
+	default:
+		*c = CueNone
+	}
+	return nil
+}
+
 // MarshalJSON sends the activity over the wire as a name, for the same reason.
 func (a Activity) MarshalJSON() ([]byte, error) {
 	return json.Marshal(a.String())
+}
+
+// UnmarshalJSON reads the activity name back.
+func (a *Activity) UnmarshalJSON(raw []byte) error {
+	var name string
+	if err := json.Unmarshal(raw, &name); err != nil {
+		return err
+	}
+	switch name {
+	case "grazing":
+		*a = Grazing
+	case "walking":
+		*a = Walking
+	case "resting":
+		*a = Resting
+	default:
+		*a = Grazing
+	}
+	return nil
 }

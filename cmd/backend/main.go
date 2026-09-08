@@ -12,7 +12,9 @@ import (
 
 	"github.com/veerbal1/paddock/internal/backend"
 	"github.com/veerbal1/paddock/internal/fence"
+	"github.com/veerbal1/paddock/internal/mqttx"
 	"github.com/veerbal1/paddock/internal/server"
+	"github.com/veerbal1/paddock/internal/telemetry"
 )
 
 // fenceHolder is the cloud-side copy of the fence: what the owner authored.
@@ -50,7 +52,18 @@ func main() {
 		}
 	}()
 
-	// TODO Step 1: subscribe to broker here, feed b via channel.
+	mc, err := mqttx.New("tcp://localhost:1883", "backend")
+	if err != nil {
+		log.Fatalf("broker: %v", err)
+	}
+	defer mc.Close()
+
+	pings := make(chan telemetry.Ping, 256)
+	if err := mc.Subscribe("1", func(p telemetry.Ping) { pings <- p }); err != nil {
+		log.Fatalf("subscribe: %v", err)
+	}
+	go b.Consume(pings)
+
 	// TODO Step 2: Store (Postgres) replaces in-memory backend behind same shape.
 	<-ctx.Done()
 
