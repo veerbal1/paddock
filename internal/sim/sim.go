@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"sync"
 	"time"
 
 	"github.com/veerbal1/paddock/internal/collar"
@@ -95,45 +94,40 @@ func cueResponse(c telemetry.Cue) float64 {
 }
 
 func (s *Sim) Run(ctx context.Context) {
-	var wg sync.WaitGroup
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	defer close(s.pings)
 
-	for _, u := range s.units {
-		wg.Add(1)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			center := s.Centroid()
+			for _, u := range s.units {
+				for i := 0; i < s.Speed; i++ {
+					u.cow.Step(time.Second, center)
+				}
+				obs := u.collar.Observe(u.cow.Pos)
 
-		go func() {
-			defer wg.Done()
+				if obs.Cue != telemetry.CueNone {
+					u.cow.TurnAway(cueResponse(obs.Cue))
+				}
 
-			ticker := time.NewTicker(time.Second)
-			defer ticker.Stop()
-
-			for {
+				ping := telemetry.Ping{
+					CowID:    u.cow.ID,
+					Pos:      u.cow.Pos,
+					At:       s.Clock.Now(),
+					State:    obs.To,
+					Cue:      obs.Cue,
+					Activity: u.cow.Activity,
+				}
 				select {
+				case s.pings <- ping:
 				case <-ctx.Done():
 					return
-				case <-ticker.C:
-					center := s.Centroid()
-					for i := 0; i < s.Speed; i++ {
-						u.cow.Step(time.Second, center)
-					}
-					obs := u.collar.Observe(u.cow.Pos)
-
-					if obs.Cue != telemetry.CueNone {
-						u.cow.TurnAway(cueResponse(obs.Cue))
-					}
-
-					s.pings <- telemetry.Ping{
-						CowID:    u.cow.ID,
-						Pos:      u.cow.Pos,
-						At:       s.Clock.Now(),
-						State:    obs.To,
-						Cue:      obs.Cue,
-						Activity: u.cow.Activity,
-					}
 				}
 			}
-		}()
+		}
 	}
-
-	wg.Wait()
-	close(s.pings)
 }
