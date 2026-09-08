@@ -3,7 +3,6 @@
 package backend
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/veerbal1/paddock/internal/telemetry"
@@ -37,7 +36,5 @@ func (b *Backend) Consume(pings <-chan telemetry.Ping) {
 		b.mu.Lock()
 		b.latest[p.CowID] = p
 		b.mu.Unlock()
-		fmt.Printf("%s  x=%.1f y=%.1f  %-8s  cue=%s\n",
-			p.CowID, p.Pos.X, p.Pos.Y, p.State, p.Cue)
 	}
 }
