@@ -1,0 +1,9 @@
+services:
+  nats:
+    image: nats:2.11
+    ports:
+      - "1883:1883"
+      - "8222:8222"
+    volumes:
+      - ./nats.conf:/etc/nats/nats.conf:ro
+    command: ["-c", "/etc/nats/nats.conf", "-js"]
