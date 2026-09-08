@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"flag"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/veerbal1/paddock/internal/backend"
 	"github.com/veerbal1/paddock/internal/fence"
@@ -31,7 +33,18 @@ func main() {
 	go s.Run(ctx)
 
 	srv := &http.Server{Addr: ":8080", Handler: server.New(b).Routes()}
-	go srv.ListenAndServe()
+	go func() {
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			log.Printf("server: %v", err)
+			stop()
+		}
+	}()
 
 	b.Consume(s.Pings())
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(shutdownCtx); err != nil && err != http.ErrServerClosed {
+		log.Printf("shutdown: %v", err)
+	}
 }
