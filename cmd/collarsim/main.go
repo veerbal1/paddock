@@ -4,16 +4,12 @@ import (
 	"context"
 	"flag"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
-	"github.com/veerbal1/paddock/internal/backend"
 	"github.com/veerbal1/paddock/internal/fence"
 	"github.com/veerbal1/paddock/internal/geom"
-	"github.com/veerbal1/paddock/internal/server"
 	"github.com/veerbal1/paddock/internal/sim"
 )
 
@@ -28,23 +24,13 @@ func main() {
 	f := fence.Rect{MinX: 0, MaxX: 100, MinY: 0, MaxY: 100}
 	s := sim.New(50, *seed, geom.Point{X: 50, Y: 50}, f)
 	s.Speed = *speed
-	b := backend.New()
 
 	go s.Run(ctx)
 
-	srv := &http.Server{Addr: ":8080", Handler: server.New(b, s).Routes()}
-	go func() {
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			log.Printf("server: %v", err)
-			stop()
-		}
-	}()
-
-	b.Consume(s.Pings())
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	if err := srv.Shutdown(shutdownCtx); err != nil && err != http.ErrServerClosed {
-		log.Printf("shutdown: %v", err)
+	// TODO Step 1: publish pings to broker here instead of dropping.
+	n := 0
+	for range s.Pings() {
+		n++
 	}
+	log.Printf("collarsim: drained %d pings, exiting", n)
 }
