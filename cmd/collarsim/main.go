@@ -32,7 +32,7 @@ func main() {
 
 	go s.Run(ctx)
 
-	srv := &http.Server{Addr: ":8080", Handler: server.New(b).Routes()}
+	srv := &http.Server{Addr: ":8080", Handler: server.New(b, s).Routes()}
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 			log.Printf("server: %v", err)

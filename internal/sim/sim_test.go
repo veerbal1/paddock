@@ -41,3 +41,23 @@ func TestHerdStaysTogether(t *testing.T) {
 		t.Fatalf("herd spread = %.1fm, want <= 200m", got)
 	}
 }
+
+// TestSetFenceUpdatesEveryCollar checks the PUT /fence downlink: one call
+// must replace all 50 collar copies plus the getter, so the next tick
+// enforces the new bounds everywhere, not halfway through the herd.
+func TestSetFenceUpdatesEveryCollar(t *testing.T) {
+	old := fence.Rect{MinX: 0, MaxX: 500, MinY: 0, MaxY: 500}
+	s := New(50, 42, geom.Point{X: 250, Y: 250}, old)
+
+	next := fence.Rect{MinX: 200, MaxX: 300, MinY: 200, MaxY: 300}
+	s.SetFence(next)
+
+	if got := s.Fence(); got != next {
+		t.Fatalf("Fence() = %+v, want %+v", got, next)
+	}
+	for _, u := range s.units {
+		if u.collar.Fence != next {
+			t.Fatalf("collar %s still has %+v, want %+v", u.cow.ID, u.collar.Fence, next)
+		}
+	}
+}
