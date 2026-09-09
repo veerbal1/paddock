@@ -14,31 +14,50 @@ import (
 	"github.com/veerbal1/paddock/internal/sim"
 )
 
+// env reads a setting from the environment, falling back to a default.
+func env(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
+
 func main() {
-	speed := flag.Int("speed", 1, "physics steps per real second")
-	seed := flag.Int64("seed", 42, "master random seed")
+	var (
+		speed  = flag.Int("speed", 1, "physics steps per real second")
+		seed   = flag.Int64("seed", 42, "master random seed")
+		herd   = flag.Int("herd", 50, "number of cows")
+		broker = flag.String("broker", env("PADDOCK_BROKER", "tcp://localhost:1883"), "MQTT broker address")
+		farmID = flag.String("farm", env("PADDOCK_FARM", "1"), "farm this fleet belongs to")
+	)
 	flag.Parse()
-	mqttxClient, err := mqttx.New("tcp://localhost:1883", "collarsim")
+
+	mc, err := mqttx.New(*broker, "collarsim")
 	if err != nil {
 		log.Fatalf("broker: %v", err)
 	}
-	defer mqttxClient.Close()
+	defer mc.Close()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// The device fleet's own fence copy. Step 3 replaces this seed value
+	// with the retained fence the broker hands over on subscribe.
 	f := fence.Rect{MinX: 0, MaxX: 100, MinY: 0, MaxY: 100}
-	s := sim.New(50, *seed, geom.Point{X: 50, Y: 50}, f)
+	s := sim.New(*herd, *seed, geom.Point{X: 50, Y: 50}, f)
 	s.Speed = *speed
 
 	go s.Run(ctx)
 
-	n := 0
+	log.Printf("collarsim: farm %s, %d cows, broker %s", *farmID, *herd, *broker)
+
+	// Run closes the ping channel when ctx is done, so this loop is the
+	// shutdown signal too: it ends once the last tick has been published.
+	failed := 0
 	for ping := range s.Pings() {
-		err := mqttxClient.PublishPing("1", ping)
-		if err != nil {
-			n++
+		if err := mc.PublishPing(*farmID, ping); err != nil {
+			failed++
 		}
 	}
-	log.Printf("collarsim: failed %d pings, exiting", n)
+	log.Printf("collarsim: %d pings failed to publish, exiting", failed)
 }

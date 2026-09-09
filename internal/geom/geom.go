@@ -4,6 +4,6 @@ package geom
 // farm origin. It is not a GPS coordinate: lat/lng is converted to a
 // Point only at the system boundary.
 type Point struct {
-	X float64 // metres east of origin
-	Y float64 // metres north of origin
+	X float64 `json:"x"` // metres east of origin
+	Y float64 `json:"y"` // metres north of origin
 }

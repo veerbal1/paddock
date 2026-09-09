@@ -58,7 +58,7 @@ func (s *Sim) SetFence(f fence.Rect) {
 	defer s.mu.Unlock()
 	s.fence = f
 	for _, u := range s.units {
-		u.collar.Fence = f
+		u.collar.SetFence(f)
 	}
 }
 
@@ -69,7 +69,11 @@ func (s *Sim) Fence() fence.Rect {
 	return s.fence
 }
 
-func (s *Sim) Centroid() geom.Point {
+// centroid is the herd's middle, used by the cow model to pull strays back.
+// Unexported and lock-free on purpose: it reads every cow's position, so it
+// is only safe from inside Run's own goroutine. Exporting it would hand
+// callers a data race with no warning.
+func (s *Sim) centroid() geom.Point {
 	xSum := 0.0
 	ySum := 0.0
 	var length float64 = float64(len(s.units))
@@ -130,7 +134,7 @@ func (s *Sim) Run(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			center := s.Centroid()
+			center := s.centroid()
 			// Compute under mu so SetFence can't land mid-herd. Sends
 			// happen after unlock: the ping channel can block, and a lock
 			// must never cover a blocking send.

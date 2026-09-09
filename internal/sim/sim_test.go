@@ -14,7 +14,7 @@ import (
 
 // herdSpread returns the farthest any cow is from the herd centroid, in metres.
 func herdSpread(s *Sim) float64 {
-	c := s.Centroid()
+	c := s.centroid()
 	max := 0.0
 	for _, u := range s.units {
 		dx := u.cow.Pos.X - c.X
@@ -34,7 +34,7 @@ func TestHerdStaysTogether(t *testing.T) {
 	s := New(50, 42, geom.Point{X: 250, Y: 250}, f)
 
 	for i := 0; i < 1000; i++ {
-		c := s.Centroid()
+		c := s.centroid()
 		for _, u := range s.units {
 			u.cow.Step(time.Second, c)
 		}
@@ -106,8 +106,8 @@ func TestSetFenceUpdatesEveryCollar(t *testing.T) {
 		t.Fatalf("Fence() = %+v, want %+v", got, next)
 	}
 	for _, u := range s.units {
-		if u.collar.Fence != next {
-			t.Fatalf("collar %s still has %+v, want %+v", u.cow.ID, u.collar.Fence, next)
+		if got := u.collar.Fence(); got != next {
+			t.Fatalf("collar %s still has %+v, want %+v", u.cow.ID, got, next)
 		}
 	}
 }

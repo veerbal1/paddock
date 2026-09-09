@@ -32,6 +32,11 @@ func (a Activity) String() string {
 
 // State is what a collar believes about its cow. Unlike a fence.Zone, this has
 // memory: hysteresis and dwell time hold it steady while the raw zone flickers.
+//
+// The order of these constants is load-bearing, not cosmetic: the collar's cue
+// ladder compares states with < and > to decide whether a cow is heading out
+// or coming home. Reordering them silently breaks escalation, so anything new
+// goes on the end.
 type State int
 
 const (
@@ -60,14 +65,19 @@ func (s State) String() string {
 // the device boundary belongs here — no heading, no seed, nothing internal to
 // the simulation.
 type Ping struct {
-	V        int `json:"v"` // wire version: fleets never upgrade at once
-	FarmID   string
-	CowID    string
-	Pos      geom.Point
-	At       time.Time
-	State    State
-	Cue      Cue
-	Activity Activity
+	V int `json:"v"` // wire version: fleets never upgrade at once
+
+	// FarmID never travels: the broker-seen topic is the truth, and the
+	// backend stamps it on arrival. A farm id inside the payload would be
+	// the collar's unverified claim — and paid for on every ping.
+	FarmID string `json:"-"`
+
+	CowID    string     `json:"cow_id"`
+	Pos      geom.Point `json:"pos"`
+	At       time.Time  `json:"at"`
+	State    State      `json:"state"`
+	Cue      Cue        `json:"cue"`
+	Activity Activity   `json:"activity"`
 }
 
 // Cue is what the collar did to the animal on this tick. The ladder only
