@@ -11,7 +11,6 @@ import (
 	"github.com/veerbal1/paddock/internal/edge/sim"
 	"github.com/veerbal1/paddock/internal/shared/fence"
 	"github.com/veerbal1/paddock/internal/shared/geom"
-	"github.com/veerbal1/paddock/internal/shared/mqttx"
 )
 
 // env reads a setting from the environment, falling back to a default.
@@ -32,12 +31,6 @@ func main() {
 	)
 	flag.Parse()
 
-	mc, err := mqttx.New(*broker, "collarsim")
-	if err != nil {
-		log.Fatalf("broker: %v", err)
-	}
-	defer mc.Close()
-
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -47,17 +40,22 @@ func main() {
 	s := sim.New(*herd, *seed, geom.Point{X: 50, Y: 50}, f)
 	s.Speed = *speed
 
+	// One line per collar, each with its own id and its own will. This is
+	// the expensive-looking choice that makes a single collar able to die.
+	if err := s.Connect(*broker, *farmID); err != nil {
+		log.Fatalf("broker: %v", err)
+	}
+	defer s.Disconnect()
+
 	go s.Run(ctx)
 
-	log.Printf("collarsim: farm %s, %d cows, broker %s", *farmID, *herd, *broker)
+	log.Printf("collarsim: farm %s, %d collars, %d connections, broker %s",
+		*farmID, *herd, *herd, *broker)
 
-	// Run closes the ping channel when ctx is done, so this loop is the
-	// shutdown signal too: it ends once the last tick has been published.
-	failed := 0
-	for ping := range s.Pings() {
-		if err := mc.PublishPing(*farmID, ping); err != nil {
-			failed++
-		}
+	// Every collar publishes on its own radio inside Run. This loop only
+	// drains the simulator's observation tap so Run never blocks on it, and
+	// it ends when Run closes the channel — which is the shutdown signal.
+	for range s.Pings() {
 	}
-	log.Printf("collarsim: %d pings failed to publish, exiting", failed)
+	log.Printf("collarsim: %d pings failed to publish, exiting", s.Failed())
 }

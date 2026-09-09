@@ -115,6 +115,16 @@ func main() {
 		log.Fatalf("subscribe: %v", err)
 	}
 
+	// Collar liveness. This is a status, not an alert: short dropouts are
+	// normal in a paddock, and a policy for "dark too long" belongs in
+	// Loop 5. For now it is recorded in the log only — nothing persists it,
+	// so "since when" is still an open piece of Step 3.
+	if err := mc.SubscribeStatus(*farmID, func(collarID, status string) {
+		log.Printf("collar %s: %s", collarID, status)
+	}); err != nil {
+		log.Fatalf("subscribe status: %v", err)
+	}
+
 	drainCtx, abandonDrain := context.WithCancel(context.Background())
 	defer abandonDrain()
 	consumed := make(chan struct{})

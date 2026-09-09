@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"math/rand"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/veerbal1/paddock/internal/edge/collar"
 	"github.com/veerbal1/paddock/internal/edge/cow"
 	"github.com/veerbal1/paddock/internal/shared/fence"
 	"github.com/veerbal1/paddock/internal/shared/geom"
+	"github.com/veerbal1/paddock/internal/shared/mqttx"
 	"github.com/veerbal1/paddock/internal/shared/telemetry"
 )
 
@@ -26,6 +28,10 @@ type Sim struct {
 	// lock so one tick never mixes old and new bounds.
 	mu    sync.RWMutex
 	fence fence.Rect
+
+	// farmID is set by Connect, alongside every collar's radio.
+	farmID string
+	failed atomic.Int64
 }
 
 // Clock is the source of ping timestamps. Production uses RealClock;
@@ -41,9 +47,16 @@ const spread = 40.0
 const pingBuffer = 256
 
 // unit is one cow with the collar strapped to it. They live and tick together.
+//
+// radio is this collar's own line to the broker — its own connection, its own
+// client id, its own will. A real collar carries its radio on the animal; one
+// shared connection for the whole herd could never show one collar dying while
+// the other forty-nine keep reporting. It is nil until Connect is called, and
+// a sim without radios runs happily offline.
 type unit struct {
 	cow    *cow.Cow
 	collar *collar.Collar
+	radio  *mqttx.Client
 }
 
 func (s *Sim) Pings() <-chan telemetry.Ping {
@@ -87,6 +100,39 @@ func (s *Sim) centroid() geom.Point {
 		Y: ySum / length,
 	}
 }
+
+// Connect gives every collar its own line to the broker. Call it once,
+// before Run: the radios are read outside the tick lock, so they must all be
+// in place before the first tick.
+//
+// One connection per collar, not one for the fleet. That is what the real
+// world looks like, and it is the only shape in which a single collar can go
+// dark on its own.
+func (s *Sim) Connect(broker, farmID string) error {
+	s.farmID = farmID
+	for _, u := range s.units {
+		c, err := mqttx.NewCollar(broker, farmID, u.cow.ID)
+		if err != nil {
+			s.Disconnect()
+			return fmt.Errorf("collar %s: %w", u.cow.ID, err)
+		}
+		u.radio = c
+	}
+	return nil
+}
+
+// Disconnect hangs up every collar, each saying goodbye on its own topic.
+func (s *Sim) Disconnect() {
+	for _, u := range s.units {
+		if u.radio != nil {
+			u.radio.Close()
+			u.radio = nil
+		}
+	}
+}
+
+// Failed reports how many pings could not be published.
+func (s *Sim) Failed() int64 { return s.failed.Load() }
 
 func New(n int, seed int64, start geom.Point, f fence.Rect) *Sim {
 	master := rand.New(rand.NewSource(seed))
@@ -161,7 +207,18 @@ func (s *Sim) Run(ctx context.Context) {
 			}
 			s.mu.Unlock()
 
-			for _, ping := range pings {
+			// Each collar sends its own report on its own line. Outside
+			// the lock, because publishing crosses the network and a lock
+			// must never cover something that can block.
+			//
+			// pings[i] belongs to units[i]: both are built in order and the
+			// herd never changes size.
+			for i, ping := range pings {
+				if radio := s.units[i].radio; radio != nil {
+					if err := radio.PublishPing(s.farmID, ping); err != nil {
+						s.failed.Add(1)
+					}
+				}
 				select {
 				case s.pings <- ping:
 				case <-ctx.Done():
