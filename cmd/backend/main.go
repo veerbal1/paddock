@@ -52,19 +52,19 @@ func main() {
 	defer st.Close()
 	b.WithStore(st)
 
-	srv := &http.Server{Addr: ":8080", Handler: server.New(b, holder).Routes()}
+	mc, err := mqttx.New("tcp://localhost:1883", "backend")
+	if err != nil {
+		log.Fatalf("broker: %v", err)
+	}
+	defer mc.Close()
+
+	srv := &http.Server{Addr: ":8080", Handler: server.New(b, holder).WithDownlink(st, mc).Routes()}
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("server: %v", err)
 			stop()
 		}
 	}()
-
-	mc, err := mqttx.New("tcp://localhost:1883", "backend")
-	if err != nil {
-		log.Fatalf("broker: %v", err)
-	}
-	defer mc.Close()
 
 	pings := make(chan telemetry.Ping, 256)
 	if err := mc.Subscribe("1", func(p telemetry.Ping) { pings <- p }); err != nil {
