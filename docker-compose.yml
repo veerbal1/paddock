@@ -7,3 +7,17 @@ services:
     volumes:
       - ./nats.conf:/etc/nats/nats.conf:ro
     command: ["-c", "/etc/nats/nats.conf", "-js"]
+
+  postgres:
+    image: postgres:17
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: paddock
+      POSTGRES_PASSWORD: paddock
+      POSTGRES_DB: paddock
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

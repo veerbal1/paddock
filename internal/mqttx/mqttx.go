@@ -6,6 +6,7 @@ package mqttx
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	paho "github.com/eclipse/paho.mqtt.golang"
@@ -29,14 +30,32 @@ func PingPattern(farmID string) string {
 // code to Paho, never back.
 type Handler func(telemetry.Ping)
 
+// farmFromTopic pulls "f1" out of "farm/f1/collar/c7/ping".
+// The topic is the broker-seen truth; the payload is the collar's claim.
+// They must match — mismatch means a liar, and Loop 4 drops it.
+func farmFromTopic(topic string) (string, bool) {
+	parts := strings.Split(topic, "/")
+	if len(parts) != 5 || parts[0] != "farm" || parts[2] != "collar" || parts[4] != "ping" {
+		return "", false
+	}
+	return parts[1], true
+}
+
 // Subscribe tells the broker "send this pattern to me" and registers
 // the handler Paho calls on every arrival. QoS 0: same as publish side.
+// Every ping leaves here stamped with the farm the topic said.
 func (m *Client) Subscribe(farmID string, h Handler) error {
 	tok := m.c.Subscribe(PingPattern(farmID), 0, func(_ paho.Client, msg paho.Message) {
 		var p telemetry.Ping
 		if err := json.Unmarshal(msg.Payload(), &p); err != nil {
 			return
 		}
+		farm, ok := farmFromTopic(msg.Topic())
+		if !ok {
+			return
+		}
+		p.FarmID = farm
+		p.V = 1
 		h(p)
 	})
 	tok.Wait()

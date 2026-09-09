@@ -3,9 +3,12 @@
 package backend
 
 import (
+	"context"
+	"log"
 	"sync"
 	"time"
 
+	"github.com/veerbal1/paddock/internal/store"
 	"github.com/veerbal1/paddock/internal/telemetry"
 )
 
@@ -30,6 +33,8 @@ type Backend struct {
 	alerts []Alert
 	open   map[string]int // cow -> index into alerts while out
 	mu     sync.RWMutex
+
+	st *store.Store // nil in unit tests: memory only, no disk
 }
 
 func New() *Backend {
@@ -37,6 +42,13 @@ func New() *Backend {
 		latest: make(map[string]telemetry.Ping),
 		open:   make(map[string]int),
 	}
+}
+
+// WithStore plugs disk behind memory. Chain it: backend.New().WithStore(st).
+// Farm comes from each ping's topic stamp, never from config.
+func (b *Backend) WithStore(st *store.Store) *Backend {
+	b.st = st
+	return b
 }
 
 func (b *Backend) Latest() map[string]telemetry.Ping {
@@ -68,6 +80,8 @@ func (b *Backend) Alerts() []Alert {
 }
 
 // Consume reads pings until the channel is closed and drained.
+// Memory first (fast counter), then disk (durable) — outside the lock,
+// so a slow database never blocks the next ping's episode logic.
 func (b *Backend) Consume(pings <-chan telemetry.Ping) {
 	for p := range pings {
 		b.mu.Lock()
@@ -76,12 +90,14 @@ func (b *Backend) Consume(pings <-chan telemetry.Ping) {
 
 		wasOut := seen && prev.State != telemetry.Inside
 		isOut := p.State != telemetry.Inside
+		var opened, closed bool
 		switch {
 		case !wasOut && isOut:
 			// Left inside (or first ever seen out): open an episode.
 			b.open[p.CowID] = len(b.alerts)
 			b.alerts = append(b.alerts, Alert{CowID: p.CowID, State: p.State, StartedAt: p.At})
 			b.prune()
+			opened = true
 		case wasOut && !isOut:
 			// Back inside: close it.
 			a := &b.alerts[b.open[p.CowID]]
@@ -89,11 +105,30 @@ func (b *Backend) Consume(pings <-chan telemetry.Ping) {
 			a.EndedAt = &t
 			a.State = p.State
 			delete(b.open, p.CowID)
+			closed = true
 		case wasOut && isOut:
 			// Still out: track the latest state.
 			b.alerts[b.open[p.CowID]].State = p.State
 		}
 		b.mu.Unlock()
+
+		if b.st != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			if err := b.st.SavePing(ctx, p.FarmID, p); err != nil {
+				log.Printf("store: save %s: %v", p.CowID, err)
+			}
+			if opened {
+				if _, err := b.st.OpenAlert(ctx, p.FarmID, p.CowID, p.State, p.At); err != nil {
+					log.Printf("store: open %s: %v", p.CowID, err)
+				}
+			}
+			if closed {
+				if _, err := b.st.CloseAlert(ctx, p.FarmID, p.CowID, p.At); err != nil {
+					log.Printf("store: close %s: %v", p.CowID, err)
+				}
+			}
+			cancel()
+		}
 	}
 }
 

@@ -60,6 +60,8 @@ func (s State) String() string {
 // the device boundary belongs here — no heading, no seed, nothing internal to
 // the simulation.
 type Ping struct {
+	V        int `json:"v"` // wire version: fleets never upgrade at once
+	FarmID   string
 	CowID    string
 	Pos      geom.Point
 	At       time.Time

@@ -14,6 +14,7 @@ import (
 	"github.com/veerbal1/paddock/internal/fence"
 	"github.com/veerbal1/paddock/internal/mqttx"
 	"github.com/veerbal1/paddock/internal/server"
+	"github.com/veerbal1/paddock/internal/store"
 	"github.com/veerbal1/paddock/internal/telemetry"
 )
 
@@ -44,6 +45,13 @@ func main() {
 	b := backend.New()
 	holder := &fenceHolder{f: fence.Rect{MinX: 0, MinY: 0, MaxX: 100, MaxY: 100}}
 
+	st, err := store.New(ctx, "postgres://paddock:paddock@localhost:5432/paddock?sslmode=disable")
+	if err != nil {
+		log.Fatalf("store: %v", err)
+	}
+	defer st.Close()
+	b.WithStore(st)
+
 	srv := &http.Server{Addr: ":8080", Handler: server.New(b, holder).Routes()}
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -64,7 +72,6 @@ func main() {
 	}
 	go b.Consume(pings)
 
-	// TODO Step 2: Store (Postgres) replaces in-memory backend behind same shape.
 	<-ctx.Done()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
