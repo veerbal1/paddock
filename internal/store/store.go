@@ -144,3 +144,50 @@ func (s *Store) CloseAlert(ctx context.Context, farmID, cowID string, endedAt ti
 	}
 	return tag.RowsAffected() == 1, nil
 }
+
+// SaveFence writes a new fence version and returns the version number.
+// Two steps in one transaction: read max with a lock, then insert max+1.
+// The lock means two PUTs racing wait in line instead of colliding.
+func (s *Store) SaveFence(ctx context.Context, farmID, paddockID string, polygon []byte) (int, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+
+	var max int
+	err = tx.QueryRow(ctx, `
+		SELECT COALESCE(MAX(version),0) FROM fences
+		WHERE farm_id=$1 AND paddock_id=$2
+		FOR UPDATE
+	`, farmID, paddockID).Scan(&max)
+	if err != nil {
+		return 0, err
+	}
+
+	next := max + 1
+	_, err = tx.Exec(ctx, `
+		INSERT INTO fences (farm_id, paddock_id, version, polygon)
+		VALUES ($1,$2,$3,$4)
+	`, farmID, paddockID, next, polygon)
+	if err != nil {
+		return 0, err
+	}
+	return next, tx.Commit(ctx)
+}
+
+// LatestFence returns the newest version and its polygon. False when
+// the paddock was never drawn.
+func (s *Store) LatestFence(ctx context.Context, farmID, paddockID string) (int, []byte, bool, error) {
+	var v int
+	var poly []byte
+	err := s.pool.QueryRow(ctx, `
+		SELECT version, polygon FROM fences
+		WHERE farm_id=$1 AND paddock_id=$2
+		ORDER BY version DESC LIMIT 1
+	`, farmID, paddockID).Scan(&v, &poly)
+	if err != nil {
+		return 0, nil, false, nil
+	}
+	return v, poly, true, nil
+}

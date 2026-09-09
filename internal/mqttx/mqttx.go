@@ -25,6 +25,38 @@ func PingPattern(farmID string) string {
 	return fmt.Sprintf("farm/%s/collar/+/ping", farmID)
 }
 
+// FenceTopic is the notice board: which farm, which paddock.
+func FenceTopic(farmID, paddockID string) string {
+	return fmt.Sprintf("farm/%s/fence/%s", farmID, paddockID)
+}
+
+// FenceMsg is what rides on the board: version + drawing.
+type FenceMsg struct {
+	V       int             `json:"v"`
+	Version int             `json:"version"`
+	Polygon json.RawMessage `json:"polygon"`
+}
+
+// PublishFence pins the drawing on the notice board (retained=true).
+// Late joiners read it instantly; nobody needs catch-up code.
+func (m *Client) PublishFence(farmID, paddockID string, version int, polygon []byte) error {
+	raw, err := json.Marshal(FenceMsg{V: 1, Version: version, Polygon: polygon})
+	if err != nil {
+		return err
+	}
+	tok := m.c.Publish(FenceTopic(farmID, paddockID), 1, true, raw)
+	tok.Wait()
+	return tok.Error()
+}
+
+// ClearFence tears the notice down (empty retained). Without this the
+// ghost fence haunts every reconnect after a paddock delete.
+func (m *Client) ClearFence(farmID, paddockID string) error {
+	tok := m.c.Publish(FenceTopic(farmID, paddockID), 1, true, []byte{})
+	tok.Wait()
+	return tok.Error()
+}
+
 // Handler is what the backend passes in: "when a ping arrives, call me."
 // Giving your function is not importing — the arrow points from your
 // code to Paho, never back.
