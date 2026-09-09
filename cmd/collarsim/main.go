@@ -8,10 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/veerbal1/paddock/internal/fence"
-	"github.com/veerbal1/paddock/internal/geom"
-	"github.com/veerbal1/paddock/internal/mqttx"
-	"github.com/veerbal1/paddock/internal/sim"
+	"github.com/veerbal1/paddock/internal/edge/sim"
+	"github.com/veerbal1/paddock/internal/shared/fence"
+	"github.com/veerbal1/paddock/internal/shared/geom"
+	"github.com/veerbal1/paddock/internal/shared/mqttx"
 )
 
 // env reads a setting from the environment, falling back to a default.

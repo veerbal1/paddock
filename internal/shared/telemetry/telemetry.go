@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/veerbal1/paddock/internal/geom"
+	"github.com/veerbal1/paddock/internal/shared/geom"
 )
 
 type Activity int

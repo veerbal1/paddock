@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/veerbal1/paddock/internal/collar"
-	"github.com/veerbal1/paddock/internal/cow"
-	"github.com/veerbal1/paddock/internal/fence"
-	"github.com/veerbal1/paddock/internal/geom"
-	"github.com/veerbal1/paddock/internal/telemetry"
+	"github.com/veerbal1/paddock/internal/edge/collar"
+	"github.com/veerbal1/paddock/internal/edge/cow"
+	"github.com/veerbal1/paddock/internal/shared/fence"
+	"github.com/veerbal1/paddock/internal/shared/geom"
+	"github.com/veerbal1/paddock/internal/shared/telemetry"
 )
 
 type Sim struct {

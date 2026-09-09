@@ -11,7 +11,7 @@ import (
 
 	paho "github.com/eclipse/paho.mqtt.golang"
 
-	"github.com/veerbal1/paddock/internal/telemetry"
+	"github.com/veerbal1/paddock/internal/shared/telemetry"
 )
 
 // PingTopic is the address on the envelope: which farm, which collar.

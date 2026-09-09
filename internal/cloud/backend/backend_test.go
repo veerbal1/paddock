@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/veerbal1/paddock/internal/geom"
-	"github.com/veerbal1/paddock/internal/telemetry"
+	"github.com/veerbal1/paddock/internal/shared/geom"
+	"github.com/veerbal1/paddock/internal/shared/telemetry"
 )
 
 // feed runs Consume over scripted pings and returns what it recorded.

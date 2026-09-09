@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/veerbal1/paddock/internal/telemetry"
+	"github.com/veerbal1/paddock/internal/shared/telemetry"
 )
 
 // Alert is one breach episode: a cow left `inside` at StartedAt and came

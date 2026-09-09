@@ -3,9 +3,9 @@ package collar
 import (
 	"testing"
 
-	"github.com/veerbal1/paddock/internal/fence"
-	"github.com/veerbal1/paddock/internal/geom"
-	"github.com/veerbal1/paddock/internal/telemetry"
+	"github.com/veerbal1/paddock/internal/shared/fence"
+	"github.com/veerbal1/paddock/internal/shared/geom"
+	"github.com/veerbal1/paddock/internal/shared/telemetry"
 )
 
 func testFence() fence.Rect {

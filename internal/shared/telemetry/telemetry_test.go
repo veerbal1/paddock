@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/veerbal1/paddock/internal/geom"
+	"github.com/veerbal1/paddock/internal/shared/geom"
 )
 
 // TestPingRoundTrip is the contract test between the two binaries: whatever

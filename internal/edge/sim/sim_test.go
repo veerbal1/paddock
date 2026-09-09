@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/veerbal1/paddock/internal/fence"
-	"github.com/veerbal1/paddock/internal/geom"
-	"github.com/veerbal1/paddock/internal/telemetry"
+	"github.com/veerbal1/paddock/internal/shared/fence"
+	"github.com/veerbal1/paddock/internal/shared/geom"
+	"github.com/veerbal1/paddock/internal/shared/telemetry"
 )
 
 // herdSpread returns the farthest any cow is from the herd centroid, in metres.

@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/veerbal1/paddock/internal/geom"
+	"github.com/veerbal1/paddock/internal/shared/geom"
 )
 
 func TestRectContains(t *testing.T) {

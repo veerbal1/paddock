@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/veerbal1/paddock/internal/geom"
+	"github.com/veerbal1/paddock/internal/shared/geom"
 )
 
 func TestCowIsDeterministic(t *testing.T) {

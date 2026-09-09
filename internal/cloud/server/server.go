@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/veerbal1/paddock/internal/backend"
-	"github.com/veerbal1/paddock/internal/fence"
+	"github.com/veerbal1/paddock/internal/cloud/backend"
+	"github.com/veerbal1/paddock/internal/shared/fence"
 )
 
 // FenceSetter is the one downlink into the device fleet. The server owns

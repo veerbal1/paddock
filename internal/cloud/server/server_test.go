@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/veerbal1/paddock/internal/backend"
-	"github.com/veerbal1/paddock/internal/fence"
+	"github.com/veerbal1/paddock/internal/cloud/backend"
+	"github.com/veerbal1/paddock/internal/shared/fence"
 )
 
 // fakeFences records what the handler pushed down.

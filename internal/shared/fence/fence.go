@@ -1,6 +1,6 @@
 package fence
 
-import "github.com/veerbal1/paddock/internal/geom"
+import "github.com/veerbal1/paddock/internal/shared/geom"
 
 // Zone is where a point sits relative to the fence, right now. Pure geometry:
 // no memory, no hysteresis. A noisy GPS fix flips this every tick.

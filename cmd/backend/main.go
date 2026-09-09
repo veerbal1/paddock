@@ -13,12 +13,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/veerbal1/paddock/internal/backend"
-	"github.com/veerbal1/paddock/internal/fence"
-	"github.com/veerbal1/paddock/internal/mqttx"
-	"github.com/veerbal1/paddock/internal/server"
-	"github.com/veerbal1/paddock/internal/store"
-	"github.com/veerbal1/paddock/internal/telemetry"
+	"github.com/veerbal1/paddock/internal/cloud/backend"
+	"github.com/veerbal1/paddock/internal/cloud/server"
+	"github.com/veerbal1/paddock/internal/cloud/store"
+	"github.com/veerbal1/paddock/internal/shared/fence"
+	"github.com/veerbal1/paddock/internal/shared/mqttx"
+	"github.com/veerbal1/paddock/internal/shared/telemetry"
 )
 
 // fenceHolder is the cloud-side copy of the fence: what the owner authored.
